@@ -2,6 +2,7 @@ import numpy as np
 import torch
 from base import BaseTrainer
 from utils.bbox import Toolbox
+from torch.autograd import Variable
 
 class Trainer(BaseTrainer):
     """
@@ -30,12 +31,74 @@ class Trainer(BaseTrainer):
 
     def _eval_metrics(self, output, target, mask):
         acc_metrics = np.zeros(len(self.metrics))
-        output = output.cpu().data.numpy()
-        target = target.cpu().data.numpy()
-        output = np.argmax(output, axis=1)
+
+        print(output[0].shape)
+
+        print(torch.numel(output[1]),"hahhaha"*9)
+        print(torch.numel(output[0]),"hahhaha"*9)
+
+
+
+        output = np.asarray(output)
+        target = np.asarray(target)
+        print(output.shape,"meibianhua----"*9)
+
+        # # print("*****"*9)
+        print(output)
+        print(target)
+
+
+        output_0 = output[0]
+        target_0 = target[0]
+        output_1 = output[1]
+        target_1 = target[1]
+
+
+        print("****biamhua*"*9)
+        print(output_1)
+        print(target_1)
+        print(output.shape) # (3,)
+        print(output_0.shape) # torch.Size([5, 128, 128])
+        print(output_1.shape) # torch.Size([128, 128])
+        print(target_0.shape)
+        print(target_1.shape)
+
+
+
+
+
+        output_0 = output_0.data.cpu().numpy()
+        output_1 = output_1.data.cpu().numpy()
+        target_0 = target_0.data.cpu().numpy()
+        target_1 = target_1.data.cpu().numpy()
+
+        # output = torch.cat((output_1, output_0))
+        # target = torch.cat((target_1, target_0))
+        #
+        output = np.argmax(output_0, axis=1)
+        print(output,'outy*8888'*9)
+        print(output_0.shape)
+        print(target.shape)
+        print(target_0.shape)
+
         for i, metric in enumerate(self.metrics):
-            acc_metrics[i] += metric(output, target)
+            acc_metrics[i] += metric(output_0, target_0)
+            acc_metrics[i] += metric(output_1, target_1)
+            print('acc_metrics')
+            print(acc_metrics)
         return acc_metrics
+            # print(output.shape, "meibianhua----" * 9)
+            # output = output[i].squeeze()
+            # target = target[i].squeeze()
+            # print(output.shape)
+            # # print("*****"*9)
+            # # print(target)
+            # # print(output.shape)
+            # output = output.data.cpu().numpy()
+            # target = target.data.cpu().numpy()
+
+            # output = np.argmax(output, axis=1)
+
 
     def _train_epoch(self, epoch):
         """
@@ -58,7 +121,8 @@ class Trainer(BaseTrainer):
         total_loss = 0
         total_metrics = np.zeros(len(self.metrics))
         for batch_idx, gt in enumerate(self.data_loader):
-            img, score_map, geo_map, training_mask, transcript = gt
+            print(batch_idx,"batchindex"*9)
+            img, score_map, geo_map, training_mask = gt #ICDAR 没有transcript，所以ｇｔ信息只有４个
             img, score_map, geo_map, training_mask = self._to_tensor(img, score_map, geo_map, training_mask)
             recog_map = None
 
@@ -106,7 +170,16 @@ class Trainer(BaseTrainer):
         total_val_loss = 0
         total_val_metrics = np.zeros(len(self.metrics))
         with torch.no_grad():
-            for batch_idx, (img, score_map, geo_map, training_mask) in enumerate(self.data_loader):
+            # for batch_idx, (img, score_map, geo_map, training_mask,transcript) in enumerate(self.data_loader):#验证的时候没有transcript
+            for batch_idx, gt in enumerate(self.data_loader):
+                img, score_map, geo_map, training_mask = gt
+                print('****start_geomap**'*7)
+                print(geo_map)
+                print('img****'*7)
+                print(img)
+                print('score****'*7)
+                print(score_map)
+
                 img, score_map, geo_map, training_mask = self._to_tensor(img, score_map, geo_map, training_mask)
                 recog_map = None
 

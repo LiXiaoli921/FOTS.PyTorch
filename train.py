@@ -7,7 +7,11 @@ import pathlib
 
 from torch.utils.data import random_split
 
-from data_loader import SynthTextDataLoaderFactory
+from data_loader import SynthTextDataLoaderFactory,dataset
+
+# from data_loaders import collate_fn
+import torch.utils.data as torchdata
+from data_loader import datautils
 from logger import Logger
 from model.loss import *
 from model.model import *
@@ -15,10 +19,11 @@ from model.metric import *
 from trainer import Trainer
 from utils.bbox import Toolbox
 
+
 logging.basicConfig(level=logging.DEBUG, format='')
 
 
-ICDAR2015_DATA_ROOT = pathlib.Path('/Users/luning/Dev/data/icdar2015/train')
+ICDAR2015_DATA_ROOT = pathlib.Path('/media/ai/64AE7354AE731DAC/dataset/ICDAR2015/')
 
 
 def train_val_split(dataset, ratio: str='8:2'):
@@ -47,18 +52,20 @@ def main(config, resume):
     train_logger = Logger()
 
     # Synth800K
-    data_loader = SynthTextDataLoaderFactory(config)
-    train = data_loader.train()
-    val = data_loader.val()
+    # data_loader = SynthTextDataLoaderFactory(config)
+    # train = data_loader.train()
+    # val = data_loader.val()
 
     # icdar 2015
-    # custom_dataset = MyDataset(DATA_ROOT / 'ch4_training_images',
-    #                            DATA_ROOT / 'ch4_training_localization_transcription_gt')
-    #
-    # train_dataset, val_dataset = train_val_split(custom_dataset)
-    # data_loader = DataLoader(train_dataset, collate_fn = collate_fn, batch_size = 32, shuffle = True)
-    # valid_data_loader = DataLoader(val_dataset, collate_fn = collate_fn, batch_size = 32, shuffle = True)
+    custom_dataset = dataset.MyDataset(ICDAR2015_DATA_ROOT / 'ch4_training_images',
+                                        ICDAR2015_DATA_ROOT / 'ch4_training_localization_transcription_gt')
+
+    train_dataset, val_dataset = train_val_split(custom_dataset)
+    # data_loader = torchdata.DataLoader(train_dataset, collate_fn = SynthTextDataLoaderFactory.collate_fn, batch_size = 1, shuffle = True)
+    data_loader = torchdata.DataLoader(train_dataset, collate_fn = datautils.collate_fn, batch_size = 8, shuffle = True)
+    valid_data_loader = torchdata.DataLoader(val_dataset, collate_fn = datautils.collate_fn, batch_size = 8, shuffle = True)
     os.environ['CUDA_VISIBLE_DEVICES'] = ','.join([str(i) for i in config['gpus']])
+    # os.environ['CUDA_VISIBLE_DEVICES'] = "0,1"
     model = eval(config['arch'])(config['model'])
     model.summary()
 
@@ -68,8 +75,8 @@ def main(config, resume):
     trainer = Trainer(model, loss, metrics,
                       resume=resume,
                       config=config,
-                      data_loader=train,
-                      valid_data_loader=val,
+                      data_loader=data_loader,
+                      valid_data_loader=valid_data_loader,
                       train_logger=train_logger,
                       toolbox = Toolbox)
 
@@ -87,7 +94,13 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    config = None
+    config = 'config.json'
+    with open("config.json", 'r') as load_f:
+        config = json.load(load_f)
+        print(config)
+        print(config['gpus'])
+    # config1 = json.loads(config)
+    # print(config1)
     if args.resume is not None:
         if args.config is not None:
             logger.warning('Warning: --config overridden by --resume')

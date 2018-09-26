@@ -1,7 +1,9 @@
 from torch.utils.data import Dataset
 from .datautils import *
 import scipy.io as sio
+import logging
 
+logger = logging.getLogger(__name__)
 class MyDataset(Dataset):
 
     def __init__(self, img_root, txt_root):
@@ -14,6 +16,8 @@ class MyDataset(Dataset):
                                                              input_size = 512,
                                                              random_scale = np.array([0.5, 1, 2.0, 3.0]),
                                                              background_ratio = 3. / 8)
+        print("""score_map"""*9)
+        print(score_map)
         return img, score_map, geo_map, training_mask
 
     def __len__(self):
@@ -55,10 +59,27 @@ class ICDAR(Dataset):
 
     }
 
-    def __init__(self, data_root, year='2013'):
+    def __init__(self, data_root, year='2015', type='training'):
+        data_root = pathlib.Path(data_root)
+        if year == '2015' and type == 'test':
+            logger.warning('ICDAR 2015 does not contain test ground truth. Fall back to training instead.')
 
         self.structure = ICDAR.structure[year]
-        pass
+        self.imagesRoot = data_root / self.structure[type] / self.structure[type]['images']
+        self.gtRoot = data_root / self.structure[type] / self.structure[type]['gt']
+
+        def __getitem__(self, item):
+            for image in self.gtRoot.glob('*.png'):
+                pass
+
+        # def __getitem__(self, index):
+        #     img, score_map, geo_map, training_mask = image_label(self.txt_root,
+        #                                                          self.image_list, self.img_name, index,
+        #                                                          input_size=512,
+        #                                                          random_scale=np.array([0.5, 1, 2.0, 3.0]),
+        #                                                          background_ratio=3. / 8)
+        #     print(score_map)
+        #     return img, score_map, geo_map, training_mask
 
 class ICDARDatasetFactory(Dataset):
 

@@ -445,6 +445,8 @@ def restore_rectangle(origin, geometry):
 
 def generate_rbox(im_size, polys, tags):
     h, w = im_size
+    # print('h,w,size'*9)# 测试通过，ｓｉｚｅ是５１２＊５１２
+    # print(h,w,polys)
     poly_mask = np.zeros((h, w), dtype = np.uint8)
     score_map = np.zeros((h, w), dtype = np.uint8)
     geo_map = np.zeros((h, w, 5), dtype = np.float32)
@@ -499,7 +501,7 @@ def generate_rbox(im_size, polys, tags):
             new_p0 = p0
             new_p1 = p1
             new_p2 = p2
-            new_p3 = p3
+            new_p3 = p3 # 以上都是有数值的
             new_p2 = line_cross_point(forward_edge, edge_opposite)
             if point_dist_to_line(p1, new_p2, p0) > point_dist_to_line(p1, new_p2, p3):
                 # across p0
@@ -585,14 +587,20 @@ def image_label(txt_root, image_list, img_name, index,
         #     pass
 
         text_polys, text_tags = load_annoataion(txt_fn) # text_polys: n * 4 * 2
+        # print("tetx_ploy"*8) #检查是能运行到这里，读取４个角点的坐标值
+        # print(text_polys)
+
         text_polys, text_tags = check_and_validate_polys(text_polys, text_tags, (h, w))
         # if text_polys.shape[0] == 0:
         #     continue
         # random scale this image
+        # print("tetx_ploy"*8) #检查是能运行到这里，读取４个角点的坐标值
+        # print(text_polys)
         rd_scale = np.random.choice(random_scale)
         im = cv2.resize(im, dsize = None, fx = rd_scale, fy = rd_scale)
         text_polys *= rd_scale
-        # print rd_scale
+        # print("tetx_ploy"*8)
+        # print (rd_scale)
         # random crop a area from image
         if np.random.rand() < background_ratio:
             # crop background
@@ -615,17 +623,17 @@ def image_label(txt_root, image_list, img_name, index,
             im, text_polys, text_tags = crop_area(im, text_polys, text_tags, crop_background = False)
             # if text_polys.shape[0] == 0:
             #     pass
-            h, w, _ = im.shape
+            h, w, _ = im.shape #shape = 1068.2300,3
 
             # pad the image to the training input size or the longer side of image
             new_h, new_w, _ = im.shape
             max_h_w_i = np.max([new_h, new_w, input_size])
             im_padded = np.zeros((max_h_w_i, max_h_w_i, 3), dtype = np.uint8)
             im_padded[:new_h, :new_w, :] = im.copy()
-            im = im_padded
+            im = im_padded# 都padding成了尺寸最大后的样子,2300*2300
             # resize the image to input size
             new_h, new_w, _ = im.shape
-            resize_h = input_size
+            resize_h = input_size #接着再resize成512*512,这样的正方形
             resize_w = input_size
             im = cv2.resize(im, dsize = (resize_w, resize_h))
             resize_ratio_3_x = resize_w / float(new_w)
@@ -634,6 +642,8 @@ def image_label(txt_root, image_list, img_name, index,
             text_polys[:, :, 1] *= resize_ratio_3_y
             new_h, new_w, _ = im.shape
             score_map, geo_map, training_mask = generate_rbox((new_h, new_w), text_polys, text_tags)
+            print('geo_map'*9)
+            print(geo_map)
 
         # predict 出来的feature map 是 128 * 128， 所以 gt 需要取 /4 步长
         images = im[:, :, ::-1].astype(np.float32)

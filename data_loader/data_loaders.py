@@ -91,7 +91,8 @@ class SynthTextDataLoaderFactory(BaseDataLoader):
 
     @staticmethod
     def collate_fn(batch):
-        img, score_map, geo_map, training_mask, transcript = zip(*batch)
+        # img, score_map, geo_map, training_mask, transcript = zip(*batch)
+        img, score_map, geo_map, training_mask = zip(*batch)
         bs = len(score_map)
         images = []
         score_maps = []
